@@ -125,19 +125,13 @@ License.
     <dependency>
       <groupId>com.github.samtools</groupId>
       <artifactId>htsjdk</artifactId>
-      <version>1.133</version>
+      <version>1.131</version>
       <exclusions>
         <exclusion>
           <groupId>org.testng</groupId>
           <artifactId>testng</artifactId>
         </exclusion>
       </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.opencb.hpg</groupId>
-      <artifactId>hpg-bigdata-core</artifactId>
-      <version>0.5-SNAPSHOT</version>
-      <optional>true</optional> <!-- requires Java 8 -->
     </dependency>
   </dependencies>
 
@@ -153,7 +147,7 @@ License.
           <target>${java.version}</target>
           <compilerArgs>
             <arg>-Xlint:all,-serial</arg>
-            <arg>-Werror</arg> <!-- fail on warnings -->
+            <!--<arg>-Werror</arg> &lt;!&ndash; fail on warnings &ndash;&gt;-->
           </compilerArgs>
         </configuration>
       </plugin>
@@ -188,24 +182,24 @@ License.
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>2.15</version>
-        <configuration>
-          <headerLocation>build-resources/header-file.txt</headerLocation>
-          <configLocation>build-resources/checkstyle.xml</configLocation>
-        </configuration>
-        <executions>
-          <execution>
-            <id>validate</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+      <!--<plugin>-->
+        <!--<groupId>org.apache.maven.plugins</groupId>-->
+        <!--<artifactId>maven-checkstyle-plugin</artifactId>-->
+        <!--<version>2.15</version>-->
+        <!--<configuration>-->
+          <!--<headerLocation>build-resources/header-file.txt</headerLocation>-->
+          <!--<configLocation>build-resources/checkstyle.xml</configLocation>-->
+        <!--</configuration>-->
+        <!--<executions>-->
+          <!--<execution>-->
+            <!--<id>validate</id>-->
+            <!--<phase>validate</phase>-->
+            <!--<goals>-->
+              <!--<goal>check</goal>-->
+            <!--</goals>-->
+          <!--</execution>-->
+        <!--</executions>-->
+      <!--</plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>

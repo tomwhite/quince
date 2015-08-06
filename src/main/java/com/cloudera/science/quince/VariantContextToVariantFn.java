@@ -15,6 +15,11 @@
 
 package com.cloudera.science.quince;
 
+import com.cloudera.science.moco.variant.FullVcfCodec;
+import com.cloudera.science.moco.variant.Genotype2CallSet;
+import com.cloudera.science.moco.variant.VariantContext2VariantConverter;
+import com.cloudera.science.moco.variant.VariantConverterContext;
+import com.cloudera.science.moco.variant.VcfBlockIterator;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFHeader;
 import java.io.ByteArrayInputStream;
@@ -28,11 +33,6 @@ import org.apache.hadoop.io.LongWritable;
 import org.ga4gh.models.CallSet;
 import org.ga4gh.models.Variant;
 import org.ga4gh.models.VariantSet;
-import org.opencb.hpg.bigdata.core.converters.FullVcfCodec;
-import org.opencb.hpg.bigdata.core.converters.variation.Genotype2CallSet;
-import org.opencb.hpg.bigdata.core.converters.variation.VariantContext2VariantConverter;
-import org.opencb.hpg.bigdata.core.converters.variation.VariantConverterContext;
-import org.opencb.hpg.bigdata.core.io.VcfBlockIterator;
 import org.seqdoop.hadoop_bam.VariantContextWritable;
 
 /**
