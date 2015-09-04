@@ -29,6 +29,7 @@ import org.apache.crunch.CrunchRuntimeException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
+import org.apache.crunch.PTable;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.PipelineResult;
 import org.apache.crunch.Source;
@@ -36,6 +37,7 @@ import org.apache.crunch.Target;
 import org.apache.crunch.TableSource;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.io.From;
+import org.apache.crunch.io.avro.AvroPathPerKeyTarget;
 import org.apache.crunch.io.parquet.AvroParquetFileSource;
 import org.apache.crunch.types.avro.Avros;
 import org.apache.hadoop.conf.Configuration;
@@ -48,11 +50,8 @@ import org.ga4gh.models.FlatVariantCall;
 import org.ga4gh.models.Variant;
 import org.kitesdk.data.CompressionType;
 import org.kitesdk.data.DatasetDescriptor;
-import org.kitesdk.data.Datasets;
 import org.kitesdk.data.Formats;
 import org.kitesdk.data.PartitionStrategy;
-import org.kitesdk.data.View;
-import org.kitesdk.data.crunch.CrunchDatasets;
 import org.kitesdk.data.mapreduce.DatasetKeyOutputFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,22 +132,22 @@ public class LoadVariantsTool extends Configured implements Tool {
         .compressionType(CompressionType.Uncompressed)
         .build();
 
-    View<FlatVariantCall> dataset;
-    String outputKiteUri;
-    if (outputPathString.startsWith(DATASET_SCHEME + ":")) {
-      outputKiteUri = outputPathString;
-    } else {
-      Path outputPath = new Path(outputPathString);
-      outputPath = outputPath.getFileSystem(conf).makeQualified(outputPath);
-      outputKiteUri = DATASET_SCHEME + ":" + outputPath.toUri();
-    }
-    if (Datasets.exists(outputKiteUri)) {
-      dataset = Datasets.load(outputKiteUri, FlatVariantCall.class)
-          .getDataset().with("sample_group", sampleGroup);
-    } else {
-      dataset = Datasets.create(outputKiteUri, desc, FlatVariantCall.class)
-          .getDataset().with("sample_group", sampleGroup);
-    }
+//    View<FlatVariantCall> dataset;
+//    String outputKiteUri;
+//    if (outputPathString.startsWith(DATASET_SCHEME + ":")) {
+//      outputKiteUri = outputPathString;
+//    } else {
+//      Path outputPath = new Path(outputPathString);
+//      outputPath = outputPath.getFileSystem(conf).makeQualified(outputPath);
+//      outputKiteUri = DATASET_SCHEME + ":" + outputPath.toUri();
+//    }
+//    if (Datasets.exists(outputKiteUri)) {
+//      dataset = Datasets.load(outputKiteUri, FlatVariantCall.class)
+//          .getDataset().with("sample_group", sampleGroup);
+//    } else {
+//      dataset = Datasets.create(outputKiteUri, desc, FlatVariantCall.class)
+//          .getDataset().with("sample_group", sampleGroup);
+//    }
 
     int numReducers = conf.getInt("mapreduce.job.reduces", 1);
     System.out.println("Num reducers: " + numReducers);
@@ -156,14 +155,15 @@ public class LoadVariantsTool extends Configured implements Tool {
     final Schema sortKeySchema = SchemaBuilder.record("sortKey")
         .fields().requiredString("sampleId").endRecord();
 
-    PCollection<FlatVariantCall> partitioned =
-        CrunchDatasetsExtension.partitionAndSort(flatRecords, dataset, new
-            FlatVariantCallRecordMapFn(sortKeySchema), sortKeySchema, numReducers, 1);
+    PTable<String, FlatVariantCall> partitioned =
+        CrunchUtils.partitionAndSort(flatRecords, segmentSize, sampleGroup);
 
     try {
+      Path outputPath = new Path(outputPathString);
+      outputPath = outputPath.getFileSystem(conf).makeQualified(outputPath);
       Target.WriteMode writeMode =
           overwrite ? Target.WriteMode.OVERWRITE : Target.WriteMode.DEFAULT;
-      pipeline.write(partitioned, CrunchDatasets.asTarget(dataset), writeMode);
+      pipeline.write(partitioned, new AvroPathPerKeyTarget(outputPath), writeMode);
     } catch (CrunchRuntimeException e) {
       LOG.error("Crunch runtime error", e);
       return 1;

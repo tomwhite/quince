@@ -26,9 +26,12 @@ import org.ga4gh.models.FlatVariantCall;
 
 import static org.apache.crunch.types.avro.Avros.*;
 
-public class CrunchUtils {
+public final class CrunchUtils {
 
-  public PTable<String, FlatVariantCall> partitionAndSort(
+  private CrunchUtils() {
+  }
+
+  public static PTable<String, FlatVariantCall> partitionAndSort(
       PCollection<FlatVariantCall> flatRecords, long segmentSize, String sampleGroup) {
     // group by partition key (table key), then prepare for sorting by sample ID (first
     // element in value pair)
@@ -46,8 +49,8 @@ public class CrunchUtils {
       String sampleGroup) {
     StringBuilder sb = new StringBuilder();
     sb.append("chr=").append(flat.getReferenceName());
-    sb.append("pos=").append(getRangeStart(segmentSize, flat.getStart()));
-    sb.append("sample_group=").append(sampleGroup);
+    sb.append("/pos=").append(getRangeStart(segmentSize, flat.getStart()));
+    sb.append("/sample_group=").append(sampleGroup);
     return sb.toString();
   }
 
