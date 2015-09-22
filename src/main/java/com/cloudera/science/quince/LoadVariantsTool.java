@@ -37,8 +37,8 @@ import org.apache.crunch.Target;
 import org.apache.crunch.TableSource;
 import org.apache.crunch.impl.mr.MRPipeline;
 import org.apache.crunch.io.From;
-import org.apache.crunch.io.avro.AvroPathPerKeyTarget;
 import org.apache.crunch.io.parquet.AvroParquetFileSource;
+import org.apache.crunch.io.parquet.AvroParquetPathPerKeyTarget;
 import org.apache.crunch.types.avro.Avros;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -163,7 +163,7 @@ public class LoadVariantsTool extends Configured implements Tool {
       outputPath = outputPath.getFileSystem(conf).makeQualified(outputPath);
       Target.WriteMode writeMode =
           overwrite ? Target.WriteMode.OVERWRITE : Target.WriteMode.DEFAULT;
-      pipeline.write(partitioned, new AvroPathPerKeyTarget(outputPath), writeMode);
+      pipeline.write(partitioned, new AvroParquetPathPerKeyTarget(outputPath), writeMode);
     } catch (CrunchRuntimeException e) {
       LOG.error("Crunch runtime error", e);
       return 1;
