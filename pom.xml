@@ -105,6 +105,19 @@ License.
       <scope>test</scope>
     </dependency>
 
+    <!-- ADAM dependencies -->
+    <dependency>
+      <groupId>org.bdgenomics.adam</groupId>
+      <artifactId>adam-core_2.10</artifactId>
+      <version>0.18.0</version>
+    </dependency>
+    <!-- TODO: This is purely to get access to the Logging trait, which is insane-->
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_2.10</artifactId>
+      <version>1.5.1</version>
+    </dependency>
+
     <!-- dependencies for loading from VCF -->
     <dependency>
       <groupId>org.seqdoop</groupId>
@@ -136,7 +149,6 @@ License.
   </dependencies>
 
   <build>
-
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -162,6 +174,10 @@ License.
               <goal>schema</goal>
               <goal>idl-protocol</goal>
             </goals>
+            <!-- UNCOMMENT when we switch to GA4GH 0.5.1.1 which uses Strings-->
+            <!--<configuration>-->
+              <!--<stringType>String</stringType>-->
+            <!--</configuration>-->
           </execution>
         </executions>
       </plugin>

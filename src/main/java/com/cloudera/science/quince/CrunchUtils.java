@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.GroupingOptions;
@@ -27,6 +29,8 @@ import org.apache.crunch.MapFn;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
+import org.apache.crunch.Tuple3;
+import org.apache.crunch.Tuple4;
 import org.apache.crunch.lib.SecondarySort;
 
 import org.apache.crunch.types.avro.Avros;
@@ -45,6 +49,69 @@ public final class CrunchUtils {
 
   private CrunchUtils() {
   }
+
+  public static final class LocusSampleToPartitionFn
+      extends MapFn<Tuple4<String, Long, String, String>, String> {
+    private long segmentSize;
+    private String sampleGroup;
+
+    public LocusSampleToPartitionFn(long segmentSize, String sampleGroup) {
+      this.segmentSize = segmentSize;
+      this.sampleGroup = sampleGroup;
+    }
+
+    @Override
+    public String map(Tuple4<String, Long, String, String> input) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("chr=").append(input.first());
+      sb.append("/pos=").append(getRangeStart(segmentSize, input.second()));
+      if (sampleGroup != null) {
+        sb.append("/sample_group=").append(sampleGroup);
+      }
+      return sb.toString();
+    }
+  }
+
+  public static final class ReKeyDistributeByFn
+      extends MapFn<Pair<Tuple4<String, Long, String, String>, SpecificRecord>,
+                    Pair<Tuple3<String, Long, String>,
+                         Pair<Long, Pair<Tuple4<String, Long, String, String>, SpecificRecord>>>> {
+    private long segmentSize;
+
+    public ReKeyDistributeByFn(long segmentSize) {
+      this.segmentSize = segmentSize;
+    }
+
+    @Override
+    public Pair<Tuple3<String, Long, String>,
+                Pair<Long, Pair<Tuple4<String, Long, String, String>, SpecificRecord>>> map(
+        Pair<Tuple4<String, Long, String, String>, SpecificRecord> input) {
+      String chr = input.first().first();
+      long pos = input.first().second();
+      String sampleGroup = input.first().third();
+      long segment = getRangeStart(segmentSize, pos);
+      return Pair.of(Tuple3.of(chr, segment, sampleGroup), Pair.of(pos, input));
+    }
+  }
+
+  public static final class UnKeyForDistributeByFn
+      extends DoFn<Pair<Tuple3<String, Long, String>,
+                        Iterable<Pair<Long, Pair<Tuple4<String, Long, String, String>,
+                                                 SpecificRecord>>>>,
+                   Pair<Tuple4<String, Long, String, String>, SpecificRecord>> {
+    @Override
+    public void process(
+        Pair<Tuple3<String, Long, String>,
+             Iterable<Pair<Long,
+                           Pair<Tuple4<String, Long, String, String>, SpecificRecord>>>> input,
+        Emitter<Pair<Tuple4<String, Long, String, String>, SpecificRecord>> emitter) {
+      for (Pair<Long,
+                Pair<Tuple4<String, Long, String, String>, SpecificRecord>> pair : input.second()) {
+        emitter.emit(pair.second());
+      }
+    }
+  }
+
 
   public static PTable<String, FlatVariantCall> partitionAndSortUsingShuffle(
       PCollection<Variant> records, long segmentSize, String sampleGroup, Set<String> samples,
