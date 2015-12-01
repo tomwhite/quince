@@ -19,7 +19,7 @@ import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.Pair;
-import org.apache.crunch.Tuple4;
+import org.apache.crunch.Tuple3;
 import org.bdgenomics.formats.avro.FlatGenotype;
 import org.bdgenomics.formats.avro.FlatVariant;
 import org.bdgenomics.formats.avro.Genotype;
@@ -27,9 +27,13 @@ import org.bdgenomics.formats.avro.Variant;
 
 import java.util.Collection;
 
+/**
+ * Extract the key from an ADAM {@link Variant} and optionally flatten the record and
+ * expand genotype calls.
+ */
 public class ADAMToKeyedSpecificRecordFn extends
     DoFn<Pair<org.bdgenomics.formats.avro.Variant, Collection<Genotype>>,
-         Pair<Tuple4<String, Long, String, String>, SpecificRecord>> {
+         Pair<Tuple3<String, Long, String>, SpecificRecord>> {
   private boolean variantsOnly;
   private boolean flatten;
   private String sampleGroup;
@@ -42,22 +46,28 @@ public class ADAMToKeyedSpecificRecordFn extends
 
   @Override
   public void process(Pair<org.bdgenomics.formats.avro.Variant, Collection<Genotype>> input,
-                      Emitter<Pair<Tuple4<String, Long, String, String>, SpecificRecord>> emitter) {
+                      Emitter<Pair<Tuple3<String, Long, String>, SpecificRecord>> emitter) {
     Variant variant = input.first();
     String contig = variant.getContig().getContigName();
     long pos = variant.getStart();
     if (variantsOnly) {
-      Tuple4<String, Long, String, String> key = Tuple4.of(contig, pos, sampleGroup, null);
-      SpecificRecord sr = flatten ? ADAMUtils.flattenVariant(variant) : variant;
+      Tuple3<String, Long, String> key = Tuple3.of(contig, pos, sampleGroup);
+      SpecificRecord sr = flatten ? ADAMVariantFlattener.flattenVariant(variant) : variant;
       emitter.emit(Pair.of(key, sr));
     } else {  // genotype calls
       for (Genotype genotype : input.second()) {
         String sample = genotype.getSampleId();
-        Tuple4<String, Long, String, String> key = Tuple4.of(contig, pos, sampleGroup, sample);
-        SpecificRecord sr = flatten ? ADAMUtils.flattenGenotype(genotype) : genotype;
+        Tuple3<String, Long, String> key = Tuple3.of(contig, pos, sampleGroup);
+        SpecificRecord sr = flatten ? ADAMVariantFlattener.flattenGenotype(genotype) : genotype;
         emitter.emit(Pair.of(key, sr));
       }
     }
+  }
+
+  @Override
+  public float scaleFactor() {
+    // See comment in {@link GA4GHToKeyedSpecificRecordFn}.
+    return variantsOnly ? super.scaleFactor() : 3.0f;
   }
 
   public Class getSpecificRecordType() {

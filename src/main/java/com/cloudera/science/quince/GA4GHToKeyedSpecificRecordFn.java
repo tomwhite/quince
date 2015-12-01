@@ -15,23 +15,22 @@
 
 package com.cloudera.science.quince;
 
-import java.util.Arrays;
-
+import java.util.Collections;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
 import org.apache.crunch.Pair;
-import org.apache.crunch.Tuple4;
+import org.apache.crunch.Tuple3;
 import org.ga4gh.models.Call;
 import org.ga4gh.models.FlatVariantCall;
 import org.ga4gh.models.Variant;
 
 /**
- * Convert a {@link VariantContextWritable} from a VCF file to a GA4GH
- * {@link org.ga4gh.models.Variant}.
+ * Extract the key from a GA4GH {@link Variant} and optionally flatten the record and
+ * expand genotype calls.
  */
 public class GA4GHToKeyedSpecificRecordFn
-    extends DoFn<Variant, Pair<Tuple4<String, Long, String, String>, SpecificRecord>> {
+    extends DoFn<Variant, Pair<Tuple3<String, Long, String>, SpecificRecord>> {
 
   private boolean variantsOnly;
   private boolean flatten;
@@ -45,36 +44,36 @@ public class GA4GHToKeyedSpecificRecordFn
 
   @Override
   public void process(Variant input,
-                      Emitter<Pair<Tuple4<String, Long, String, String>, SpecificRecord>> emitter) {
+                      Emitter<Pair<Tuple3<String, Long, String>, SpecificRecord>> emitter) {
     String contig = input.getReferenceName().toString();
     long pos = input.getStart();
     if (variantsOnly) {
-      Tuple4<String, Long, String, String> key = Tuple4.of(contig, pos, sampleGroup, null);
-      SpecificRecord sr = flatten ? GA4GHUtils.flattenVariant(input) : input;
+      Tuple3<String, Long, String> key = Tuple3.of(contig, pos, sampleGroup);
+      SpecificRecord sr = flatten ? GA4GHVariantFlattener.flattenVariant(input) : input;
       emitter.emit(Pair.of(key, sr));
     } else {  // genotype calls
       Variant.Builder variantBuilder = Variant.newBuilder(input).clearCalls();
       for (Call call : input.getCalls()) {
-        Tuple4<String, Long, String, String> key =
-            Tuple4.of(contig, pos, sampleGroup, call.getCallSetId().toString());
-        variantBuilder.setCalls(Arrays.asList(call));
+        Tuple3<String, Long, String> key = Tuple3.of(contig, pos, sampleGroup);
+        variantBuilder.setCalls(Collections.singletonList(call));
         Variant variant = variantBuilder.build();
-        SpecificRecord sr = flatten ? GA4GHUtils.flattenCall(variant, call) : variant;
+        SpecificRecord sr = flatten ? GA4GHVariantFlattener.flattenCall(variant, call) : variant;
         emitter.emit(Pair.of(key, sr));
         variantBuilder.clearCalls();
       }
     }
   }
 
+  @Override
+  public float scaleFactor() {
+    // If the variant information is of size <i>v</i> (bytes) and the call information is
+    // <i>c</i> then the scale factor is <i>n(v + c) / (v + nc)</i> for <i>n</i> calls.
+    // If we assume that <i>v</i> is <i>2c</i> (as determined by a simple measurement),
+    // then the scale factor works out at about 3.
+    return variantsOnly ? super.scaleFactor() : 3.0f;
+  }
+
   public Class getSpecificRecordType() {
-    if (variantsOnly && flatten) {
-      return FlatVariantCall.class;
-    } else if (variantsOnly && !flatten) {
-      return Variant.class;
-    } else if (!variantsOnly && flatten) {
-      return FlatVariantCall.class;
-    } else {  // !variantsOnly && !flatten
-      return Variant.class;
-    }
+    return flatten ? FlatVariantCall.class : Variant.class;
   }
 }

@@ -15,16 +15,15 @@
 
 package com.cloudera.science.quince;
 
+import java.util.List;
 import org.bdgenomics.formats.avro.FlatGenotype;
 import org.bdgenomics.formats.avro.FlatVariant;
 import org.bdgenomics.formats.avro.Genotype;
 import org.bdgenomics.formats.avro.GenotypeAllele;
 import org.bdgenomics.formats.avro.Variant;
 
-import java.util.List;
-
-public final class ADAMUtils {
-  private ADAMUtils() {
+public final class ADAMVariantFlattener {
+  private ADAMVariantFlattener() {
   }
 
   public static FlatVariant flattenVariant(Variant variant) {

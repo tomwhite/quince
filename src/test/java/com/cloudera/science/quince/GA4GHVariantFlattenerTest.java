@@ -15,9 +15,6 @@
 package com.cloudera.science.quince;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import java.util.List;
-import org.apache.crunch.Emitter;
 import org.ga4gh.models.Call;
 import org.ga4gh.models.FlatVariantCall;
 import org.ga4gh.models.Variant;
@@ -26,17 +23,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-public class FlattenVariantsTest {
-
-  static class CapturingEmitter implements Emitter<FlatVariantCall> {
-    List<FlatVariantCall> flatVariantCalls = Lists.newArrayList();
-    @Override
-    public void emit(FlatVariantCall flatVariantCall) {
-      flatVariantCalls.add(flatVariantCall);
-    }
-    @Override
-    public void flush() { }
-  }
+public class GA4GHVariantFlattenerTest {
 
   @Test
   public void testVariantWithCalls() {
@@ -63,14 +50,7 @@ public class FlattenVariantsTest {
         ))
         .build();
 
-    FlattenVariantFn fn = new FlattenVariantFn();
-    CapturingEmitter emitter = new CapturingEmitter();
-    fn.process(v, emitter);
-
-    assertEquals("Each call in the variant produces a FlatVariantCall", 2,
-        emitter.flatVariantCalls.size());
-
-    FlatVariantCall flat1 = emitter.flatVariantCalls.get(0);
+    FlatVariantCall flat1 = GA4GHVariantFlattener.flattenCall(v, v.getCalls().get(0));
     assertEquals(".", flat1.getId());
     assertEquals("1", flat1.getReferenceName());
     assertEquals(14396L, flat1.getStart().longValue());
@@ -81,7 +61,7 @@ public class FlattenVariantsTest {
     assertEquals(0, flat1.getGenotype1().intValue());
     assertEquals(1, flat1.getGenotype2().intValue());
 
-    FlatVariantCall flat2 = emitter.flatVariantCalls.get(1);
+    FlatVariantCall flat2 = GA4GHVariantFlattener.flattenCall(v, v.getCalls().get(1));
     assertEquals(".", flat2.getId());
     assertEquals("1", flat2.getReferenceName());
     assertEquals(14396L, flat2.getStart().longValue());
@@ -106,14 +86,7 @@ public class FlattenVariantsTest {
         .setAlleleIds(ImmutableList.<CharSequence>of("", ""))
         .build();
 
-    FlattenVariantFn fn = new FlattenVariantFn(null, true);
-    CapturingEmitter emitter = new CapturingEmitter();
-    fn.process(v, emitter);
-
-    assertEquals("Each variant produces a FlatVariantCall", 1,
-        emitter.flatVariantCalls.size());
-
-    FlatVariantCall flat1 = emitter.flatVariantCalls.get(0);
+    FlatVariantCall flat1 = GA4GHVariantFlattener.flattenVariant(v);
     assertEquals(".", flat1.getId());
     assertEquals("1", flat1.getReferenceName());
     assertEquals(14396L, flat1.getStart().longValue());

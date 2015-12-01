@@ -15,14 +15,13 @@
 
 package com.cloudera.science.quince;
 
+import java.util.List;
 import org.ga4gh.models.Call;
 import org.ga4gh.models.FlatVariantCall;
 import org.ga4gh.models.Variant;
 
-import java.util.List;
-
-public final class GA4GHUtils {
-  private GA4GHUtils() {
+public final class GA4GHVariantFlattener {
+  private GA4GHVariantFlattener() {
   }
 
   public static FlatVariantCall flattenVariant(Variant variant) {
