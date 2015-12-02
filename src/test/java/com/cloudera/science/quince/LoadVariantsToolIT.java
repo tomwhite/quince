@@ -193,6 +193,40 @@ public class LoadVariantsToolIT {
   }
 
   @Test
+  public void testRestrictSamples() throws Exception {
+    String baseDir = "target/datasets";
+
+    FileUtil.fullyDelete(new File(baseDir));
+
+    String sampleGroup = "default";
+    String input = "datasets/variants_vcf";
+    String output = "target/datasets/variants_out";
+
+    int exitCode = tool.run(new String[]{"--flatten", "--data-model", "GA4GH", "--sample-group",
+        sampleGroup, "--samples", "NA12878,NA12892", input, output});
+    assertEquals(0, exitCode);
+    File partition = new File(baseDir, "variants_out/chr=1/pos=0/sample_group=default");
+    File[] dataFiles = partition.listFiles(new HiddenFileFilter());
+
+    ParquetReader<FlatVariantCall> parquetReader =
+        AvroParquetReader.<FlatVariantCall>builder(new Path(dataFiles[0].toURI())).build();
+
+    // first record has first sample (call set) ID
+    FlatVariantCall flat1 = parquetReader.read();
+    assertEquals(".", flat1.getId());
+    assertEquals("1", flat1.getReferenceName());
+    assertEquals(14396L, flat1.getStart().longValue());
+    assertEquals(14400L, flat1.getEnd().longValue());
+    assertEquals("CTGT", flat1.getReferenceBases());
+    assertEquals("C", flat1.getAlternateBases1());
+    assertEquals("NA12878", flat1.getCallSetId());
+    assertEquals(0, flat1.getGenotype1().intValue());
+    assertEquals(1, flat1.getGenotype2().intValue());
+
+    checkSortedByStart(dataFiles[0], 10);
+  }
+
+  @Test
   public void testDataModels() throws Exception {
     String baseDir = "target/datasets";
 

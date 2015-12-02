@@ -16,6 +16,7 @@
 package com.cloudera.science.quince;
 
 import java.io.IOException;
+import java.util.Set;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
@@ -39,13 +40,14 @@ public class GA4GHVariantsLoader extends VariantsLoader {
   @Override
   public PTable<Tuple3<String, Long, String>, SpecificRecord>
       loadKeyedRecords(String inputFormat, Path inputPath, Configuration conf,
-          Pipeline pipeline, boolean variantsOnly, boolean flatten, String sampleGroup)
+          Pipeline pipeline, boolean variantsOnly, boolean flatten, String sampleGroup,
+          Set<String> samples)
       throws IOException {
     PCollection<Variant> variants = readVariants(inputFormat, inputPath,
         conf, pipeline, sampleGroup);
 
     GA4GHToKeyedSpecificRecordFn converter =
-        new GA4GHToKeyedSpecificRecordFn(variantsOnly, flatten, sampleGroup);
+        new GA4GHToKeyedSpecificRecordFn(variantsOnly, flatten, sampleGroup, samples);
     @SuppressWarnings("unchecked")
     PType<SpecificRecord> specificPType = Avros.specifics(converter
         .getSpecificRecordType());

@@ -19,7 +19,10 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+import com.google.common.base.Splitter;
+import com.google.common.collect.Sets;
 import java.util.List;
+import java.util.Set;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.PTable;
 import org.apache.crunch.Pipeline;
@@ -65,6 +68,10 @@ public class LoadVariantsTool extends Configured implements Tool {
   @Parameter(names="--variants-only",
       description="Ignore samples and only load variants.")
   private boolean variantsOnly = false;
+
+  @Parameter(names="--samples",
+      description="Comma-separated list of samples to include.")
+  private String samples;
 
   @Parameter(names="--segment-size",
       description="The number of base pairs in each segment partition.")
@@ -117,9 +124,13 @@ public class LoadVariantsTool extends Configured implements Tool {
       return 1;
     }
 
+    Set<String> sampleSet = samples == null ? null :
+        Sets.newLinkedHashSet(Splitter.on(',').split(samples));
+
     PTable<String, SpecificRecord> partitionKeyedRecords =
         variantsLoader.loadPartitionedVariants(inputFormat, inputPath, conf, pipeline,
-            variantsOnly, flatten, sampleGroup, redistribute, segmentSize, numReducers);
+            variantsOnly, flatten, sampleGroup, sampleSet, redistribute, segmentSize,
+            numReducers);
 
     if (FileUtils.sampleGroupExists(outputPath, conf, sampleGroup)) {
       if (overwrite) {
