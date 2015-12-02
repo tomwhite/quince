@@ -16,6 +16,7 @@
 package com.cloudera.science.quince;
 
 import java.util.Collections;
+import java.util.Set;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
@@ -35,11 +36,14 @@ public class GA4GHToKeyedSpecificRecordFn
   private boolean variantsOnly;
   private boolean flatten;
   private String sampleGroup;
+  private Set<String> samples;
 
-  public GA4GHToKeyedSpecificRecordFn(boolean variantsOnly, boolean flatten, String sampleGroup) {
+  public GA4GHToKeyedSpecificRecordFn(boolean variantsOnly, boolean flatten,
+      String sampleGroup, Set<String> samples) {
     this.variantsOnly = variantsOnly;
     this.flatten = flatten;
     this.sampleGroup = sampleGroup;
+    this.samples = samples;
   }
 
   @Override
@@ -54,12 +58,14 @@ public class GA4GHToKeyedSpecificRecordFn
     } else {  // genotype calls
       Variant.Builder variantBuilder = Variant.newBuilder(input).clearCalls();
       for (Call call : input.getCalls()) {
-        Tuple3<String, Long, String> key = Tuple3.of(contig, pos, sampleGroup);
-        variantBuilder.setCalls(Collections.singletonList(call));
-        Variant variant = variantBuilder.build();
-        SpecificRecord sr = flatten ? GA4GHVariantFlattener.flattenCall(variant, call) : variant;
-        emitter.emit(Pair.of(key, sr));
-        variantBuilder.clearCalls();
+        if (samples == null || samples.contains(call.getCallSetId())) {
+          Tuple3<String, Long, String> key = Tuple3.of(contig, pos, sampleGroup);
+          variantBuilder.setCalls(Collections.singletonList(call));
+          Variant variant = variantBuilder.build();
+          SpecificRecord sr = flatten ? GA4GHVariantFlattener.flattenCall(variant, call) : variant;
+          emitter.emit(Pair.of(key, sr));
+          variantBuilder.clearCalls();
+        }
       }
     }
   }

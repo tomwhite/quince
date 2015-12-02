@@ -16,6 +16,7 @@
 package com.cloudera.science.quince;
 
 import java.io.IOException;
+import java.util.Set;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
@@ -51,12 +52,14 @@ public abstract class VariantsLoader {
    * @param variantsOnly whether to ignore samples and only load variants
    * @param flatten whether to flatten the data types
    * @param sampleGroup an identifier for the group of samples being loaded
+   * @param samples the samples to include
    * @return the keyed variant or call records
    * @throws IOException if an I/O error is encountered during loading
    */
   protected abstract PTable<Tuple3<String, Long, String>, SpecificRecord>
       loadKeyedRecords(String inputFormat, Path inputPath, Configuration conf,
-          Pipeline pipeline, boolean variantsOnly, boolean flatten, String sampleGroup)
+          Pipeline pipeline, boolean variantsOnly, boolean flatten, String sampleGroup,
+          Set<String> samples)
       throws IOException;
 
   /**
@@ -69,6 +72,7 @@ public abstract class VariantsLoader {
    * @param variantsOnly whether to ignore samples and only load variants
    * @param flatten whether to flatten the data types
    * @param sampleGroup an identifier for the group of samples being loaded
+   * @param samples the samples to include
    * @param redistribute whether to repartition the data by locus/sample group
    * @param segmentSize the number of base pairs in each segment partition
    * @param numReducers the number of reducers to use
@@ -78,11 +82,11 @@ public abstract class VariantsLoader {
   public PTable<String, SpecificRecord> loadPartitionedVariants(
       String inputFormat, Path inputPath, Configuration conf,
       Pipeline pipeline, boolean variantsOnly, boolean flatten, String sampleGroup,
-      boolean redistribute, long segmentSize, int numReducers)
+      Set<String> samples, boolean redistribute, long segmentSize, int numReducers)
       throws IOException {
     PTable<Tuple3<String, Long, String>, SpecificRecord> locusSampleKeyedRecords =
         loadKeyedRecords(inputFormat, inputPath, conf, pipeline, variantsOnly, flatten,
-            sampleGroup);
+            sampleGroup, samples);
 
     // execute a DISTRIBUTE BY operation if requested
     PTable<Tuple3<String, Long, String>, SpecificRecord> sortedRecords;

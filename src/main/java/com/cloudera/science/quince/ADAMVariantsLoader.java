@@ -17,6 +17,7 @@ package com.cloudera.science.quince;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Set;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
@@ -39,13 +40,14 @@ public class ADAMVariantsLoader extends VariantsLoader {
   @Override
   public PTable<Tuple3<String, Long, String>, SpecificRecord>
     loadKeyedRecords(String inputFormat, Path inputPath, Configuration conf,
-        Pipeline pipeline, boolean variantsOnly, boolean flatten, String sampleGroup)
+        Pipeline pipeline, boolean variantsOnly, boolean flatten, String sampleGroup,
+        Set<String> samples)
         throws IOException {
     PCollection<Pair<org.bdgenomics.formats.avro.Variant, Collection<Genotype>>> adamRecords
         = readVariants(inputFormat, inputPath, conf, pipeline, sampleGroup);
     // The data are now loaded into ADAM variant objects; convert to keyed SpecificRecords
     ADAMToKeyedSpecificRecordFn converter =
-        new ADAMToKeyedSpecificRecordFn(variantsOnly, flatten, sampleGroup);
+        new ADAMToKeyedSpecificRecordFn(variantsOnly, flatten, sampleGroup, samples);
     @SuppressWarnings("unchecked")
     PType<SpecificRecord> specificPType = Avros.specifics(converter.getSpecificRecordType());
     return adamRecords.parallelDo("Convert to keyed SpecificRecords",

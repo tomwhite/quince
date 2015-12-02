@@ -15,6 +15,7 @@
 
 package com.cloudera.science.quince;
 
+import java.util.Set;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.crunch.DoFn;
 import org.apache.crunch.Emitter;
@@ -37,11 +38,14 @@ public class ADAMToKeyedSpecificRecordFn extends
   private boolean variantsOnly;
   private boolean flatten;
   private String sampleGroup;
+  private Set<String> samples;
 
-  public ADAMToKeyedSpecificRecordFn(boolean variantsOnly, boolean flatten, String sampleGroup) {
+  public ADAMToKeyedSpecificRecordFn(boolean variantsOnly, boolean flatten,
+      String sampleGroup, Set<String> samples) {
     this.variantsOnly = variantsOnly;
     this.flatten = flatten;
     this.sampleGroup = sampleGroup;
+    this.samples = samples;
   }
 
   @Override
@@ -56,10 +60,11 @@ public class ADAMToKeyedSpecificRecordFn extends
       emitter.emit(Pair.of(key, sr));
     } else {  // genotype calls
       for (Genotype genotype : input.second()) {
-        String sample = genotype.getSampleId();
-        Tuple3<String, Long, String> key = Tuple3.of(contig, pos, sampleGroup);
-        SpecificRecord sr = flatten ? ADAMVariantFlattener.flattenGenotype(genotype) : genotype;
-        emitter.emit(Pair.of(key, sr));
+        if (samples == null || samples.contains(genotype.getSampleId())) {
+          Tuple3<String, Long, String> key = Tuple3.of(contig, pos, sampleGroup);
+          SpecificRecord sr = flatten ? ADAMVariantFlattener.flattenGenotype(genotype) : genotype;
+          emitter.emit(Pair.of(key, sr));
+        }
       }
     }
   }
