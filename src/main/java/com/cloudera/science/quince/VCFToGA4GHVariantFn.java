@@ -15,21 +15,13 @@
 
 package com.cloudera.science.quince;
 
-import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFHeaderLine;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.SerializationUtils;
-import org.apache.crunch.DoFn;
-import org.apache.crunch.Emitter;
-import org.apache.crunch.Pair;
+import org.apache.crunch.MapFn;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.ga4gh.models.CallSet;
 import org.ga4gh.models.Variant;
 import org.ga4gh.models.VariantSet;
@@ -40,16 +32,16 @@ import org.opencb.hpg.bigdata.core.converters.variation.VariantConverterContext;
 import org.opencb.hpg.bigdata.core.io.VcfBlockIterator;
 import org.seqdoop.hadoop_bam.VariantContextWritable;
 
-/**
- * Convert a {@link VariantContextWritable} from a VCF file to a GA4GH
- * {@link org.ga4gh.models.Variant}.
- */
-public class VariantContextToVariantFn
-    extends DoFn<Pair<LongWritable, VariantContextWritable>, Variant> {
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
-  private static final String SAMPLE_GROUP = "sampleGroup";
+public class VCFToGA4GHVariantFn extends MapFn<VariantContextWritable, Variant> {
+
   private static final String VARIANT_HEADERS = "variantHeaders";
   private static final String VARIANT_SET_ID = "quinceVariantSetId";
+  private static final String SAMPLE_GROUP = "sampleGroup";
 
   public static void configureHeaders(Configuration conf, Path[] vcfs, String sampleGroup)
       throws IOException {
@@ -62,9 +54,11 @@ public class VariantContextToVariantFn
       headers.add(header);
     }
     VCFHeader[] headersArray = headers.toArray(new VCFHeader[headers.size()]);
-    conf.set(VariantContextToVariantFn.VARIANT_HEADERS,
+    conf.set(VARIANT_HEADERS,
         Base64.encodeBase64String(SerializationUtils.serialize(headersArray)));
-    conf.set(VariantContextToVariantFn.SAMPLE_GROUP, sampleGroup);
+    if (sampleGroup != null) {
+      conf.set(SAMPLE_GROUP, sampleGroup);
+    }
   }
 
   private transient VariantContext2VariantConverter converter;
@@ -99,9 +93,7 @@ public class VariantContextToVariantFn
   }
 
   @Override
-  public void process(Pair<LongWritable, VariantContextWritable> input, Emitter<Variant> emitter) {
-    VariantContext variantContext = input.second().get();
-    Variant variant = converter.forward(variantContext);
-    emitter.emit(variant);
+  public Variant map(VariantContextWritable input) {
+    return converter.forward(input.get());
   }
 }

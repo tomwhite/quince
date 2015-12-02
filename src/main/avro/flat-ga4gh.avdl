@@ -12,7 +12,7 @@ server implementations.
 The `sendsMode()` method in the References API may be used to determine if a
 server sends data in a given mode.
 */
-protocol FlatVariantCalls {
+protocol FlatGA4GH {
 
 /**
 A `FlatVariantCall` is a `Call` with nested fields flattened, and `Variant` data

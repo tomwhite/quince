@@ -1,0 +1,232 @@
+@namespace("org.bdgenomics.formats.avro")
+
+/**
+Defines types used by the GA4GH Variants API.
+
+Variants API servers may implement either or both of two modes: "classic", in
+which all variation is described in terms of `Variant`s, and "graph", in which
+all variation is associated with `Allele`s which may participate in `Varaints`
+or be called on their own. The "graph" mode is to be preferred in new client and
+server implementations.
+
+The `sendsMode()` method in the References API may be used to determine if a
+server sends data in a given mode.
+*/
+protocol FlatADAM {
+
+/**
+ Flattened version of the ADAM/BDG Variant record type that is suitable for
+ use with query engines that expect flat schemas.  The schema is slightly
+ simplified.
+ */
+record FlatVariant {
+  /**
+   The Phred scaled error probability of a variant, given the probabilities of
+   the variant in a population.
+   */
+  union { null, int } variantErrorProbability = null;
+
+  /**
+   The reference contig that this variant exists on.
+   */
+  union { null, string } contigName = null;
+  /**
+   The 0-based start position of this variant on the reference contig.
+   */
+  union { null, long } start = null;
+  /**
+   The 0-based, exclusive end position of this variant on the reference contig.
+   */
+  union { null, long } end = null;
+
+  /**
+   A string describing the reference allele at this site.
+   */
+  union { null, string } referenceAllele = null;
+  /**
+   A string describing the variant allele at this site. Should be left null if
+   the site is a structural variant.
+   */
+  union { null, string } alternateAllele = null;
+
+  /**
+   A boolean describing whether this variant call is somatic; in this case, the
+   `referenceAllele` will have been observed in another sample.
+   */
+  union { boolean, null } isSomatic = false;
+}
+
+/**
+ Flattened version of the ADAM/BDG Genotype record type that is suitable for
+ use with query engines that expect flat schemas.  The schema is slightly
+ simplified.
+ */
+record FlatGenotype {
+
+  /** DENORMALIZED Variant FIELDS **/
+
+  /**
+   The Phred scaled error probability of a variant, given the probabilities of
+   the variant in a population.
+   */
+  union { null, int } variantErrorProbability = null;
+
+  /**
+   The reference contig that this variant exists on.
+   */
+  union { null, string } contigName = null;
+  /**
+   The 0-based start position of this variant on the reference contig.
+   */
+  union { null, long } start = null;
+  /**
+   The 0-based, exclusive end position of this variant on the reference contig.
+   */
+  union { null, long } end = null;
+
+  /**
+   A string describing the reference allele at this site.
+   */
+  union { null, string } referenceAllele = null;
+  /**
+   A string describing the variant allele at this site. Should be left null if
+   the site is a structural variant.
+   */
+  union { null, string } alternateAllele = null;
+
+  /**
+   A boolean describing whether this variant call is somatic; in this case, the
+   `referenceAllele` will have been observed in another sample.
+   */
+  union { boolean, null } isSomatic = false;
+
+  /** FLATTENED Genotype FIELDS **/
+
+  /**
+   Statistics collected at this site, if available.
+   */
+  // TODO
+  // union { null, VariantCallingAnnotations } variantCallingAnnotations = null;
+
+  /**
+   The unique identifier for this sample.
+   */
+  union { null, string }  sampleId = null;
+  /**
+   A description of this sample.
+   */
+  union { null, string }  sampleDescription = null;
+  /**
+   A string describing the provenance of this sample and the processing applied
+   in genotyping this sample.
+   */
+  union { null, string }  processingDescription = null;
+
+  /**
+   Only support diploid. Ref = 0, Alt = 1, OtherAlt = 2, NoCall = 3
+   */
+  union { null, int } allele_1 = null;
+  union { null, int } allele_2 = null;
+
+  /**
+   The expected dosage of the alternate allele in this sample.
+   */
+  union { null, float } expectedAlleleDosage = null;
+
+  /**
+   The number of reads that show evidence for the reference at this site.
+
+   @see alternateReadDepth
+   @see readDepth
+   */
+  union { null, int }     referenceReadDepth = null;
+  /**
+   The number of reads that show evidence for this alternate allele at this site.
+
+   @see referenceReadDepth
+   @see readDepth
+   */
+  union { null, int }     alternateReadDepth = null;
+  /**
+   The total number of reads at this site. May not equal (alternateReadDepth +
+   referenceReadDepth) if this site shows evidence of multiple alternate alleles.
+
+   @see referenceReadDepth
+   @see alternateReadDepth
+
+   @note Analogous to VCF's DP.
+   */
+  union { null, int }     readDepth = null;
+  /**
+   The minimum number of reads seen at this site across samples when joint
+   calling variants.
+
+   @note Analogous to VCF's MIN_DP.
+   */
+  union { null, int }     minReadDepth = null;
+  /**
+   The phred-scaled probability that we're correct for this genotype call.
+
+   @note Analogous to VCF's GQ.
+   */
+  union { null, int }     genotypeQuality = null;
+
+  /**
+   Log scaled likelihoods that we have n copies of this alternate allele.
+   The number of elements in this array should be equal to the ploidy at this
+   site, plus 1.
+
+   @note Analogous to VCF's PL.
+   */
+  union { null, float } genotypeLikelihood_0 = null;
+  union { null, float } genotypeLikelihood_1 = null;
+  union { null, float } genotypeLikelihood_2 = null;
+  /**
+   Log scaled likelihoods that we have n non-reference alleles at this site.
+   The number of elements in this array should be equal to the ploidy at this
+   site, plus 1.
+   */
+  union { null, float } nonReferenceLikelihood_0 = null;
+  union { null, float } nonReferenceLikelihood_1 = null;
+  union { null, float } nonReferenceLikelihood_2 = null;
+
+  /**
+   Component statistics which comprise the Fisher's Exact Test to detect strand bias.
+   If populated, this element should have length 4.
+   */
+  union { null, int } strandBiasComponent_0 = null;
+  union { null, int } strandBiasComponent_1 = null;
+  union { null, int } strandBiasComponent_2 = null;
+  union { null, int } strandBiasComponent_3 = null;
+
+  /**
+   We split multi-allelic VCF lines into multiple
+   single-alternate records.  This bit is set if that happened for this
+   record.
+   */
+  union { boolean, null } splitFromMultiAllelic = false;
+
+  /**
+   True if this genotype is phased.
+
+   @see phaseSetId
+   @see phaseQuality
+   */
+  union { boolean, null } isPhased = false;
+  /**
+   The ID of this phase set, if this genotype is phased. Should only be populated
+   if isPhased == true; else should be null.
+
+   @see isPhased
+   */
+  union { null, int }     phaseSetId = null;
+  /**
+   Phred scaled quality score for the phasing of this genotype, if this genotype
+   is phased. Should only be populated if isPhased == true; else should be null.
+
+   @see isPhased
+   */
+  union { null, int }     phaseQuality = null;
+}
+
+}

@@ -28,7 +28,6 @@ import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
 import org.apache.crunch.Pair;
 import org.apache.crunch.lib.SecondarySort;
-
 import org.apache.crunch.types.avro.Avros;
 import org.ga4gh.models.Call;
 import org.ga4gh.models.FlatVariantCall;
@@ -37,7 +36,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.cloudera.science.quince.FlattenVariantFn.flatten;
-import static org.apache.crunch.types.avro.Avros.*;
+import static org.apache.crunch.types.avro.Avros.longs;
+import static org.apache.crunch.types.avro.Avros.pairs;
+import static org.apache.crunch.types.avro.Avros.strings;
+import static org.apache.crunch.types.avro.Avros.tableOf;
 
 public final class CrunchUtils {
 

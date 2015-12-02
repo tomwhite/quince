@@ -16,55 +16,14 @@
 package com.cloudera.science.quince;
 
 import java.io.IOException;
-import org.apache.crunch.PCollection;
-import org.apache.crunch.Pipeline;
-import org.apache.crunch.Source;
-import org.apache.crunch.TableSource;
-import org.apache.crunch.io.From;
-import org.apache.crunch.io.parquet.AvroParquetFileSource;
-import org.apache.crunch.types.avro.Avros;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.io.LongWritable;
-import org.ga4gh.models.Variant;
-import org.seqdoop.hadoop_bam.VCFInputFormat;
-import org.seqdoop.hadoop_bam.VariantContextWritable;
 
 public final class FileUtils {
   private FileUtils() {
-  }
-
-  public static PCollection<Variant> readVariants(Path path, Configuration conf,
-      Pipeline pipeline) throws IOException {
-    Path file = findFile(path, conf);
-    if (file.getName().endsWith(".avro")) {
-      return pipeline.read(From.avroFile(path, Avros.specifics(Variant.class)));
-    } else if (file.getName().endsWith(".parquet")) {
-      @SuppressWarnings("unchecked")
-      Source<Variant> source = new AvroParquetFileSource(path,
-          Avros.specifics(Variant.class));
-      return pipeline.read(source);
-    } else if (file.getName().endsWith(".vcf")) {
-      TableSource<LongWritable, VariantContextWritable> vcfSource =
-          From.formattedFile(path, VCFInputFormat.class, LongWritable.class,
-              VariantContextWritable.class);
-      return pipeline.read(vcfSource).parallelDo(new VariantContextToVariantFn(),
-          Avros.specifics(Variant.class));
-    }
-    throw new IllegalStateException("Unrecognized format for " + file);
-  }
-
-  public static Path findFile(Path path, Configuration conf) throws IOException {
-    FileSystem fs = path.getFileSystem(conf);
-    if (fs.isDirectory(path)) {
-      FileStatus[] fileStatuses = fs.listStatus(path, new HiddenPathFilter());
-      return fileStatuses[0].getPath();
-    } else {
-      return path;
-    }
   }
 
   public static Path[] findVcfs(Path path, Configuration conf) throws IOException {

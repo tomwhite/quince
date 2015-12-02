@@ -32,7 +32,7 @@ import org.seqdoop.hadoop_bam.VariantContextWritable;
 
 import static org.junit.Assert.assertEquals;
 
-public class VariantContextToVariantFnTest {
+public class VCFToGA4GHVariantFnTest {
 
   @Test
   public void testVCF() throws IOException {
@@ -41,8 +41,8 @@ public class VariantContextToVariantFnTest {
 
     Configuration conf = new Configuration();
     Path[] vcfs = new Path[] { new Path(vcf.toURI()) };
-    VariantContextToVariantFn.configureHeaders(conf, vcfs, "default");
-    VariantContextToVariantFn fn = new VariantContextToVariantFn();
+    VCFToGA4GHVariantFn.configureHeaders(conf, vcfs, "default");
+    VCFToGA4GHVariantFn fn = new VCFToGA4GHVariantFn();
     fn.setConfiguration(conf);
     fn.initialize();
 
@@ -62,7 +62,7 @@ public class VariantContextToVariantFnTest {
     }
 
     CapturingEmitter emitter = new CapturingEmitter();
-    fn.process(Pair.of((LongWritable) null, vcw), emitter);
+    fn.process(vcw, emitter);
     Variant v = emitter.variant;
     assertEquals(".", v.getId());
     assertEquals("", v.getVariantSetId());
