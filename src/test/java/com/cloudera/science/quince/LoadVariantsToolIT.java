@@ -19,9 +19,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
@@ -422,41 +420,6 @@ public class LoadVariantsToolIT {
     assertEquals(1, flat1.getGenotype2().intValue());
 
     checkSortedByStart(dataFiles[0], 30);
-  }
-
-  private void checkSortedBySampleAndStart(File file, int expectedCount) throws IOException {
-    // check records are sorted by sample id, then start position
-    ParquetReader<FlatVariantCall> parquetReader =
-        AvroParquetReader.<FlatVariantCall>builder(new Path(file.toURI())).build();
-
-    int actualCount = 0;
-
-    FlatVariantCall flat1 = parquetReader.read();
-    actualCount++;
-
-    String previousCallSetId = flat1.getCallSetId().toString();
-    Long previousStart = flat1.getStart();
-    while (true) {
-      FlatVariantCall flat = parquetReader.read();
-      if (flat == null) {
-        break;
-      }
-      String callSetId = flat.getCallSetId().toString();
-      Long start = flat1.getStart();
-      assertTrue("Should be sorted by callSetId",
-          previousCallSetId.compareTo(callSetId) <= 0);
-
-      if (previousCallSetId.compareTo(callSetId) == 0) {
-        assertTrue("Should be sorted by start within callSetId",
-            previousStart.compareTo(start) <= 0);
-      }
-
-      previousCallSetId = callSetId;
-      previousStart = start;
-      actualCount++;
-    }
-
-    assertEquals(expectedCount, actualCount);
   }
 
   private void checkSortedByStart(File file, int expectedCount) throws IOException {
