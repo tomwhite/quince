@@ -77,6 +77,10 @@ public class LoadVariantsTool extends Configured implements Tool {
       description="The number of base pairs in each segment partition.")
   private long segmentSize = 1000000;
 
+  @Parameter(names="--expand-gvcf-blocks",
+      description="Whether to expand gVCF blocks into a record per site.")
+  private boolean expandGvcfBlocks = false;
+
   @Parameter(names="--redistribute",
       description="Whether to repartition the data by locus/sample group.")
   private boolean redistribute = false;
@@ -130,7 +134,7 @@ public class LoadVariantsTool extends Configured implements Tool {
     PTable<String, SpecificRecord> partitionKeyedRecords =
         variantsLoader.loadPartitionedVariants(inputFormat, inputPath, conf, pipeline,
             variantsOnly, flatten, sampleGroup, sampleSet, redistribute, segmentSize,
-            numReducers);
+            expandGvcfBlocks, numReducers);
 
     if (FileUtils.sampleGroupExists(outputPath, conf, sampleGroup)) {
       if (overwrite) {

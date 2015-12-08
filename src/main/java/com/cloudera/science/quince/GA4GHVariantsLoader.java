@@ -18,8 +18,11 @@ package com.cloudera.science.quince;
 import java.io.IOException;
 import java.util.Set;
 import org.apache.avro.specific.SpecificRecord;
+import org.apache.crunch.DoFn;
+import org.apache.crunch.Emitter;
 import org.apache.crunch.PCollection;
 import org.apache.crunch.PTable;
+import org.apache.crunch.Pair;
 import org.apache.crunch.Pipeline;
 import org.apache.crunch.Source;
 import org.apache.crunch.TableSource;
@@ -31,6 +34,7 @@ import org.apache.crunch.types.avro.Avros;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
+import org.ga4gh.models.FlatVariantCall;
 import org.ga4gh.models.Variant;
 import org.seqdoop.hadoop_bam.VCFInputFormat;
 import org.seqdoop.hadoop_bam.VariantContextWritable;
@@ -82,5 +86,72 @@ public class GA4GHVariantsLoader extends VariantsLoader {
       throw new IllegalStateException("Unrecognized input format: " + inputFormat);
     }
     return variants;
+  }
+
+  @Override
+  protected PTable<Tuple3<String, Long, String>, SpecificRecord>
+      expandGvcfBlocks(PTable<Tuple3<String, Long, String>, SpecificRecord> records,
+      long segmentSize) {
+    return records.parallelDo(new ExpandGvcfBlocksFn(segmentSize), records.getPTableType());
+  }
+
+  public static final class ExpandGvcfBlocksFn
+      extends DoFn<Pair<Tuple3<String, Long, String>, SpecificRecord>,
+      Pair<Tuple3<String, Long, String>, SpecificRecord>> {
+
+    private long segmentSize;
+
+    public ExpandGvcfBlocksFn(long segmentSize) {
+      this.segmentSize = segmentSize;
+    }
+
+    @Override
+    public void process(Pair<Tuple3<String, Long, String>, SpecificRecord> input,
+        Emitter<Pair<Tuple3<String, Long, String>, SpecificRecord>> emitter) {
+
+      SpecificRecord record = input.second();
+      if (record instanceof FlatVariantCall) {
+        FlatVariantCall v = (FlatVariantCall) record;
+        boolean block = v.getAlternateBases1().equals("") // <NON_REF>
+            && v.getAlternateBases2() == null;
+        if (block) {
+          long start = v.getStart();
+          long end = v.getEnd();
+          long segmentStart = getRangeStart(segmentSize, start);
+          long segmentEnd = getRangeStart(segmentSize, end);
+          if (segmentStart == segmentEnd) { // block is contained in one segment
+            for (long pos = start; pos < end; pos++) {
+              // mutate start and end - this is OK since Parquet will write out the
+              // values immediately
+              v.setStart(pos);
+              v.setEnd(pos + 1);
+              if (pos > start) {
+                // set reference to unknown (TODO: broadcast ref so we can set correctly)
+                v.setReferenceBases(""); // set reference to unknown
+              }
+              emitter.emit(input);
+            }
+          } else { // block spans multiple segments, so need to update key with correct pos
+            Tuple3<String, Long, String> key = input.first();
+            for (long pos = start; pos < end; pos++) {
+              // mutate start and end - this is OK since Parquet will write out the
+              // values immediately
+              v.setStart(pos);
+              v.setEnd(pos + 1);
+              if (pos > start) {
+                // set reference to unknown (TODO: broadcast ref so we can set correctly)
+                v.setReferenceBases(""); // set reference to unknown
+              }
+              Tuple3<String, Long, String> newKey =
+                  Tuple3.of(key.first(), getRangeStart(segmentSize, pos), key.third());
+              emitter.emit(Pair.of(newKey, (SpecificRecord) v));
+            }
+          }
+          return;
+        }
+      }
+      // TODO: Variant
+      emitter.emit(input);
+    }
   }
 }

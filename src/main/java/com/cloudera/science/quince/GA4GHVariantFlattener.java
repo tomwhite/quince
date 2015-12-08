@@ -44,7 +44,11 @@ public final class GA4GHVariantFlattener {
     flatVariantCall.setAlternateBases2(get(variant.getAlternateBases(), 1));
     flatVariantCall.setAlleleIds1(get(variant.getAlleleIds(), 0));
     flatVariantCall.setAlleleIds2(get(variant.getAlleleIds(), 1));
-    // variant.getInfo(); TODO: ignored for now
+    // only extract END from INFO
+    List<CharSequence> end = variant.getInfo().get("END");
+    if (end != null && !end.isEmpty()) {
+      flatVariantCall.setEnd(Long.parseLong(end.get(0).toString()));
+    }
     if (call != null) {
       flatVariantCall.setCallSetId(call.getCallSetId());
       flatVariantCall.setCallSetName(call.getCallSetName());
