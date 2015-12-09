@@ -438,7 +438,7 @@ public class LoadVariantsToolIT {
       if (flat == null) {
         break;
       }
-      Long start = flat1.getStart();
+      Long start = flat.getStart();
       assertTrue("Should be sorted by start",
           previousStart.compareTo(start) <= 0);
       previousStart = start;
